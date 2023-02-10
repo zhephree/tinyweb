@@ -16,17 +16,22 @@ next_id = 3
 # environment where it intended to run on.
 class CustomersList():
 
-    def get(self, data):
+    def get(self, data, headers):
         """Return list of all customers"""
         return db
 
-    def post(self, data):
+    def post(self, data, headers):
         """Add customer"""
-        global next_id
-        db[str(next_id)] = data
-        next_id += 1
-        # Return message AND set HTTP response code to "201 Created"
-        return {'message': 'created'}, 201
+        """Example of using authorization to restrict endpoint access"""
+        token = getTokenFromHeaders(headers)
+        if checkAuth(token):
+            global next_id
+            db[str(next_id)] = data
+            next_id += 1
+            # Return message AND set HTTP response code to "201 Created"
+            return {'message': 'created'}, 201
+        else:
+            return {'message': 'Forbidden'}, 403
 
 
 # Simple helper to return message and error code
@@ -41,26 +46,45 @@ class Customer():
     def not_exists(self):
         return {'message': 'no such customer'}, 404
 
-    def get(self, data, user_id):
+    def get(self, data, headers, user_id):
         """Get detailed information about given customer"""
         if user_id not in db:
             return not_found()
         return db[user_id]
 
-    def put(self, data, user_id):
+    def put(self, data, headers, user_id):
         """Update given customer"""
         if user_id not in db:
             return not_found()
         db[user_id] = data
         return {'message': 'updated'}
 
-    def delete(self, data, user_id):
+    def delete(self, data, headers, user_id):
         """Delete customer"""
         if user_id not in db:
             return not_found()
         del db[user_id]
         return {'message': 'successfully deleted'}
 
+# Pass in the full set of headers and parse out the Authorization header
+# This example uses a Bearer token, but this could easily be modified to
+# handle Basic auth as well
+def getTokenFromHeaders(headers):
+    if not b"Authorization" in headers:
+        return False
+    auth = headers[b"Authorization"].decode('utf-8')
+    auth_parts = auth.split(" ")
+    auth_type = auth_parts[0]
+    auth_token = auth_parts[1]
+    if not auth_type == "Bearer":
+        return False
+    
+    return auth_token
+
+def checkAuth(token):
+    # do some verification of the token
+    # for demo purposes we'll just return True
+    return True
 
 def run():
     # Create web server application

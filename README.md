@@ -123,14 +123,22 @@ Main tinyweb app class.
 * `add_resource(self, cls, url, **kwargs)` - RestAPI: Map resource class `cls` to `url`. Class `cls` is arbitrary class with with implementation of HTTP methods:
     ```python
     class CustomersList():
-        def get(self, data):
+        def get(self, data, headers):
             """Return list of all customers"""
             return {'1': {'name': 'Jack'}, '2': {'name': 'Bob'}}
 
-        def post(self, data):
+        def post(self, data, headers):
             """Add customer"""
             db[str(next_id)] = data
-        return {'message': 'created'}, 201
+            return {'message': 'created'}, 201
+
+        def delete(self, data, headers):
+            """Delete customer if authorized"""
+            if b'Authorization' in headers:
+                del db[str(next_id)]
+                return {'message': 'deleted'}, 200
+            else:
+                return {'message': 'forbidden'}, 403
     ```
   `**kwargs` are optional and will be passed to handler directly.
     **Note**: only `GET`, `POST`, `PUT` and `DELETE` methods are supported. Check [restapi full example](https://github.com/belyalov/tinyweb/blob/master/examples/rest_api.py) as well.
@@ -139,12 +147,12 @@ Main tinyweb app class.
     ```python
     # Regular version
     @app.resource('/user/<id>')
-    def user(data, id):
+    def user(data, headers, id):
         return {'id': id, 'name': 'foo'}
 
     # Generator based / different HTTP method
     @app.resource('/user/<id>', method='POST')
-    async def user(data, id):
+    async def user(data, headers, id):
         yield '{'
         yield '"id": "{}",'.format(id)
         yield '"name": "test",'
@@ -207,6 +215,8 @@ Use this class to generate HTTP response. Please be noticed that `response` clas
 * `redirect(self, location)` - Generate HTTP redirection (HTTP 302 Found) to `location`. This *function is coroutine*.
 
 * `start_html(self)`- Start response with HTML content type. This *function is coroutine*. This function is basically sends response line and headers. Refer to [hello world example](https://github.com/belyalov/tinyweb/blob/master/examples/hello_world.py).
+
+* `start_json(self)`- Start response with JSON content type. This *function is coroutine*. This function is basically sends response line and headers. Refer to [hello world example](https://github.com/belyalov/tinyweb/blob/master/examples/hello_world.py).
 
 * `send(self, payload)` - Sends your string/bytes `payload` to client. Be sure to start your response with `start_html()` or manually. This *function is coroutine*.
 
