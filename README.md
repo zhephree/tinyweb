@@ -9,6 +9,7 @@ By itself - *tinyweb* is just simple TCP server running on top of `uasyncio` - l
 * *Tiny* memory usage. So you can run it on devices like **ESP8266 / ESP32** with 64K/96K of onboard RAM. BTW, there is a huge room for optimizations - so your contributions are warmly welcomed.
 * Support for static content serving from filesystem.
 * Great unittest coverage. So you can be confident about quality :)
+* This fork has been updated to pass headers through to Rest API resource handlers to aid in Authorization
 
 ### Requirements
 
