@@ -252,6 +252,17 @@ class response:
         """
         self.add_header('Content-Type', 'text/html')
         await self._send_headers()
+        
+    async def start_json(self):
+        """Start response with JSON content type.
+        This function is generator.
+
+        Example:
+            await resp.start_json()
+            await resp.send('<html><h1>Hello, world!</h1></html>')
+        """
+        self.add_header('Content-Type', 'application/json')
+        await self._send_headers()
 
     async def send_file(self, filename, content_type=None, content_encoding=None, max_age=2592000, buf_size=128):
         """Send local file as HTTP response.
@@ -316,12 +327,14 @@ async def restful_resource_handler(req, resp, param=None):
         data.update(parse_query_string(req.query_string.decode()))
     # Call actual handler
     _handler, _kwargs = req.params['_callmap'][req.method]
+    _headers = req.headers
+
     # Collect garbage before / after handler execution
     gc.collect()
     if param:
-        res = _handler(data, param, **_kwargs)
+        res = _handler(data, _headers, param, **_kwargs)
     else:
-        res = _handler(data, **_kwargs)
+        res = _handler(data, _headers, **_kwargs)
     gc.collect()
     # Handler result could be:
     # 1. generator - in case of large payload
@@ -575,7 +588,7 @@ class webserver:
                 callmap[m.encode()] = (getattr(obj, fn), kwargs)
         self.add_route(url, restful_resource_handler,
                        methods=methods,
-                       save_headers=['Content-Length', 'Content-Type'],
+                       save_headers=['Content-Length', 'Content-Type', 'Authorization'],
                        _callmap=callmap)
 
     def catchall(self):
